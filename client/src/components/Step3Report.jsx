@@ -7,6 +7,7 @@ import 'react-circular-progressbar/dist/styles.css';
 import {Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis} from 'recharts'
 import jsPDF from 'jspdf' 
 import autoTable from 'jspdf-autotable'
+import { current } from '@reduxjs/toolkit';
   function Step3Report({report}) {
     const navigate = useNavigate()
   if(!report){
@@ -74,8 +75,100 @@ import autoTable from 'jspdf-autotable'
     })
 
     currentY += 5;
-    
 
+    // underline 
+    doc.setDrawColor(34, 197, 94);
+    doc.line(margin, currentY+2, pageWidth - margin, currentY + 2);
+
+    currentY += 15;
+    // ======= FINAL SCORE BOX==========
+    doc.setFillColor(240, 253, 244);
+    doc.roundedRect(margin, currentY, contentWidth, 20, 4, 4, "F");
+
+    doc.setFontSize(14);
+    doc.setTextColor(0, 0, 0);
+    doc.text(
+      `Final Score: ${finalScore}/10`,
+      pageWidth /2,
+      currentY + 12,
+      {align: "center"},
+
+    );
+    currentY += 30
+
+    // === Skills Box ====
+    doc.setFillColor(249, 250, 251);
+    doc.roundedRect(margin, currentY, contentWidth, 30, 4, 4, "F")
+
+    doc.setFontSize(12);
+    doc.text(`Confidence: ${confidence}`, margin + 10, currentY + 10)
+    doc.text(`Communication: ${communication}`, margin + 10, currentY + 18);
+    doc.text(`Correctness: ${correctness}`, margin + 10, currentY + 26);
+
+    currentY += 45;
+
+    // ==== Advice ====
+
+    let advice = "";
+    if(finalScore >= 8){
+      advice = 'Excellent Performance. Maintain Confidence and structure. Continue refining clarity and supporting answers with strong real-world examples.';
+    }
+    else if(finalScore >= 5){
+      advice= 'Good foundation shown. Improve clarity and structure. Practice delivering concise , confident answers with stronger support.';
+    }
+    else {
+      advice = 'Significant improvement required. Focus on structure thinking , clarity and confident delivery. Practice answering aloud regularly. ';
+    }
+
+    doc.setFillColor(255, 255, 255);
+    doc.setDrawColor(220);
+    doc.roundedRect(margin , currentY, contentWidth, 35, 4 , 4);
+
+    doc.setFont("helvetica", "bold");
+    doc.text("Professional Advice", margin + 10, currentY + 10);
+
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(11);
+
+    const splitAdvice = doc.splitTextToSize(advice, contentWidth-20)
+    doc.text(splitAdvice, margin + 10, currentY + 20);
+
+    currentY += 50;
+
+    // ===== Question Table =====
+
+    autoTable(doc, {
+      startY: currentY,
+      margin: {left: margin, righ: margin},
+      head: [["#", "Question", "Score", "Feedback"]],
+      body: questionWiseScore.map((q, i) => [
+        `${i+1}`,
+        q.question,
+        `${q.score}/10`,
+        `${q.feedback}`
+      ]),
+      styles: {
+        fontSize: 9,
+        cellPadding: 5,
+        valign: "top",
+      },
+      headStyles: {
+        fillColor: [34, 197, 94],
+        textColor: 255,
+        halign: "center",
+      },
+      columnStyles: {
+        0: {cellWidth: 10, halign: "center"},
+        1: {cellWidth: 55},
+        2: {cellWidth: 20, halign: "center"},
+        3: {cellWidth: "auto"},
+      },
+      alternateRowStyles: {
+        fillColor: [249, 250, 251],
+      },
+    });
+
+    doc.save("AI_Interview_Report.pdf");
   }
   return (
     <div className='min-h-screen bg-linear-to-br from-gray-50 to-green-50 px sm:px-6 lg:px-10 py-8'>
@@ -99,7 +192,9 @@ import autoTable from 'jspdf-autotable'
                         </div>  
                     </div>
 
-          <button className=' text-nowrap bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-3 rounded-xl shadow-md transition-all duration-300 font-semibold text-sm sm:text-base'>
+          <button 
+          onClick={downloadPDF}
+          className=' text-nowrap bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-3 rounded-xl shadow-md transition-all duration-300 font-semibold text-sm sm:text-base'>
             Download PDF
           </button>
       </div>
