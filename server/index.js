@@ -7,6 +7,7 @@ import cookieParser from "cookie-parser";
 import cors from "cors"
 import userRouter from "./routes/userRoutes.js";
 import interviewRouter from "./routes/interviewRoute.js";
+import paymentRouter from "./routes/paymentRoute.js";
 dotenv.config();
 const app = express();
 app.use(cors({
@@ -20,6 +21,7 @@ app.use(cookieParser());
 app.use('/api/auth', authRouter)
 app.use("/api/user", userRouter)
 app.use("/api/interview", interviewRouter)
+app.use("/api/interview", paymentRouter)
 const PORT = process.env.PORT || 6000;
 app.listen( PORT , () => {
     console.log(`Server running on PORT ${PORT}`);
