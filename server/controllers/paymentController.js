@@ -28,7 +28,7 @@ export const createOrder = async(req, res) => {
             amount,
             credits,
             razorpayOrderId: order.id,
-            status: "Created",
+            status: "created",
         });
 
         return res.json(order);
