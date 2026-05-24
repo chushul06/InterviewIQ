@@ -1,12 +1,17 @@
 import React, { useState } from 'react'
 import { FaArrowLeft, FaCheckCircle } from 'react-icons/fa'
-import { useNavigate } from 'react-router-dom'
+import { Navigate, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
+import axios from 'axios'
+import { useDispatch } from 'react-redux'
+import { setUserData } from '../redux/userSlice'
 
 const Pricing = () => {
+  const ServerUrl = "http://localhost:8000"
   const navigate = useNavigate();
   const [selectedPlan, setSelectedPlan] = useState("free");
-
+  const [loadingPlan , setLoadingPlan] = useState(null)
+  const dispatch = useDispatch();
   const plans = [
     {
       id: "free",
@@ -50,12 +55,59 @@ const Pricing = () => {
       badge: "Best Value",
     },
   ]
+  const handlePayment = async(plan) => {
+    try{
+      setLoadingPlan(plan.id);
+      const pricingMap = {
+        basic: 2,
+        pro: 5,
+      }
+
+        const amount = pricingMap[plan.id]
+
+        const  result = await axios.post(ServerUrl + '/api/payment/order', {
+          planId: plan.id,
+          amount : amount,
+          credits: plan.credits,
+        }, {withCredentials: true})
+
+        console.log(result.data);
+
+        const options = {
+          key: import.meta.env.VITE_RZP_KEY_ID,
+          amount: result.data.amount,
+          currency: "INR",
+          name: "InterviewIQ.AI",
+          description: `${plan.name} - ${plan.credits} Credits`,
+          order_id: result.data.id,
+          handler: async function(response) {
+            const verifypay = await axios.post(ServerUrl + "/api/payment/verify", response, {withCredentials: true})
+
+             dispatch(setUserData(verifypay.data.user))
+            alert("Payment Succesfull , Credits added");
+            navigate("/")
+          },
+          theme:{
+            color: "#10b981"
+          },
+        }
+
+        const rzp = new window.Razorpay(options)
+        rzp.open()
+
+        setLoadingPlan(null);
+    }
+    catch(err){
+      console.log(err);
+      setLoadingPlan(null);
+    }
+  }
   return (
-    <div className='min-h-screen bg-gradient-to-br from-gray-50 to-emerald-100 py-16 and px-6'>
+    <div className='min-h-screen bg-gradient-to-br from-gray-50 to-emerald-100 py-16  px-6'>
       <div className='max-w-6xl mx-auto mb-14 flex items-start gap-4'>
         <button
           onClick={() => navigate('/')}
-          className='mt-2 p-3 rounded-full bg-white bg-white-shadow hover:shadow-md transition'>
+          className='mt-2 p-3 rounded-full bg-white shadow hover:shadow-md transition'>
           <FaArrowLeft className='text-gray-600 ' />
         </button>
 
@@ -88,8 +140,6 @@ const Pricing = () => {
                     ${plan.default ? "cursor-default" : "cursor-pointer"}
                 `}
               >
-
-
 
                 {
                   plan.badge && (
@@ -137,14 +187,28 @@ const Pricing = () => {
 
                 {
                   !plan.default &&
-                  <button className={`w-full mt-8 py-3 rounded-xl font-semibold transition 
+                  <button
+                  disabled={loadingPlan === plan.id}
+                  onClick={(e) => {e.stopPropagation();
+                    if(!isSelected){
+                      setSelectedPlan(plan.id)
+                    }
+                    else{
+                      handlePayment(plan);
+                    }
+                  }}
+                  className={`w-full mt-8 py-3 rounded-xl font-semibold transition 
                     ${isSelected ? "bg-emerald-500 text-white hover:opacity-90"
                       : "bg-gray-100 text-gray-700 hover:bg-emerald-50"
 
                     }`
                   }>
                   {
-                    isSelected ? "Proceed to Pay" : "Select Plan"
+                    loadingPlan === plan.id
+                    ? "Processing..."
+                    :isSelected
+                        ? "Proceed to pay"
+                        :"Select Plan"
                   }
                   </button>
                 }
